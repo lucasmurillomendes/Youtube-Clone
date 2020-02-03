@@ -5,8 +5,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -18,9 +16,7 @@ import com.lucas.youtubeclone.adapter.AdapterVideo;
 import com.lucas.youtubeclone.api.YoutubeService;
 import com.lucas.youtubeclone.helper.RetrifitConfig;
 import com.lucas.youtubeclone.helper.YoutubeConfig;
-import com.lucas.youtubeclone.listener.RecyclerItemClickListener;
 import com.lucas.youtubeclone.model.Item;
-import com.lucas.youtubeclone.model.Resultado;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import java.util.ArrayList;
@@ -30,13 +26,13 @@ import retrofit2.Retrofit;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements MaterialSearchView.OnQueryTextListener,
+        MaterialSearchView.SearchViewListener {
 
     private RecyclerView recyclerVideos;
 
     private List<Item> videos = new ArrayList<>();
-    private Resultado resultado;
-    private AdapterVideo adapterVideo;
 
     private MaterialSearchView searchView;
 
@@ -55,38 +51,16 @@ public class MainActivity extends AppCompatActivity {
         //inicializar Componentes
         recyclerVideos = findViewById(R.id.recyclerVideos);
         searchView = findViewById(R.id.searchView);
+
+        configurarRecyclerView();
+
         //Retrofit
         retrofit = RetrifitConfig.getRetrofit();
         //recupera os videos
 
         //Configurando metodos search view
-        searchView.setOnQueryTextListener(new MaterialSearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                /**
-                 * como é uma pesquisa grande, o melhor caminho é esperar a confirmação do usuario
-                 */
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                recuperarVideos(newText);
-                return false;
-            }
-        });
-
-        searchView.setOnSearchViewListener(new MaterialSearchView.SearchViewListener() {
-            @Override
-            public void onSearchViewShown() {
-
-            }
-
-            @Override
-            public void onSearchViewClosed() {
-
-            }
-        });
+        searchView.setOnQueryTextListener(this);
+        searchView.setOnSearchViewListener(this);
 
         recuperarVideos("");
 
@@ -107,43 +81,29 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Função responsavel por todas as configurações
+     * da listView
+     */
     public void configurarRecyclerView() {
-        adapterVideo = new AdapterVideo(videos, this);
+        AdapterVideo adapterVideo = new AdapterVideo(videos, this::clickItemList);
+
         recyclerVideos.setHasFixedSize(true);
         recyclerVideos.setLayoutManager(new LinearLayoutManager(this));
         recyclerVideos.setAdapter(adapterVideo);
+    }
 
-        //configurando evento de clique
-        recyclerVideos.addOnItemTouchListener(
-                new RecyclerItemClickListener(
-                        this,
-                        recyclerVideos,
-                        new RecyclerItemClickListener.OnItemClickListener() {
-                            @Override
-                            public void onItemClick(View view, int position) {
+    /**
+     * Função responsavel pelo click da listView
+     *
+     * @param item
+     */
+    private void clickItemList(Item item) {
+        String idVideo = item.id.videoId;
 
-                                Item video = videos.get(position);
-                                String idVideo = video.id.videoId;
-
-                                Intent i = new Intent(MainActivity.this, PlayerActivity.class);
-                                i.putExtra("idVideo", idVideo);
-                                startActivity(i);
-
-                            }
-
-                            @Override
-                            public void onLongItemClick(View view, int position) {
-
-                            }
-
-                            @Override
-                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                            }
-                        }
-                )
-        );
-
+        Intent i = new Intent(MainActivity.this, PlayerActivity.class);
+        i.putExtra("idVideo", idVideo);
+        startActivity(i);
     }
 
     @Override
@@ -157,4 +117,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Função responsavel pela ação da barra de pesquisa
+     *
+     * @param query
+     * @return
+     */
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        recuperarVideos(query);
+        return false;
+    }
+
+    /**
+     * Função responsavel pela ação da barra de pesquisa
+     *
+     * @return
+     */
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        return false;
+    }
+
+    /**
+     * Função responsavel pela ação da barra de pesquisa
+     */
+    @Override
+    public void onSearchViewShown() {
+
+    }
+
+    /**
+     * Função responsavel pela ação da barra de pesquisa
+     */
+    @Override
+    public void onSearchViewClosed() {
+
+    }
 }
