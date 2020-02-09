@@ -161,4 +161,11 @@ public class MainActivity extends AppCompatActivity
     public void onSearchViewClosed() {
 
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
+        compositeDisposable.dispose();
+    }
 }
