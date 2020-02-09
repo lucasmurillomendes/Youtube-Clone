@@ -13,6 +13,7 @@ import com.lucas.youtubeclone.R;
 import com.lucas.youtubeclone.model.Item;
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AdapterVideo extends RecyclerView.Adapter<AdapterVideo.MyViewHolder> {
@@ -20,8 +21,8 @@ public class AdapterVideo extends RecyclerView.Adapter<AdapterVideo.MyViewHolder
     private List<Item> listaVideos;
     private final OnItemClickListener listener;
 
-    public AdapterVideo(List<Item> listaVideos, OnItemClickListener listener) {
-        this.listaVideos = listaVideos;
+    public AdapterVideo(OnItemClickListener listener) {
+        this.listaVideos = new ArrayList<>();
         this.listener = listener;
     }
 
@@ -37,6 +38,12 @@ public class AdapterVideo extends RecyclerView.Adapter<AdapterVideo.MyViewHolder
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
         Item video = listaVideos.get(position);
         holder.bind(video, listener);
+    }
+
+    public void updateData(List<Item> videos) {
+        listaVideos.clear();
+        listaVideos.addAll(videos);
+        notifyDataSetChanged();
     }
 
     @Override

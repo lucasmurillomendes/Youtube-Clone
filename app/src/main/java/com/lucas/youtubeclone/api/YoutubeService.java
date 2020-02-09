@@ -3,9 +3,9 @@ package com.lucas.youtubeclone.api;
 import com.lucas.youtubeclone.model.Resultado;
 
 
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-import rx.Observable;
 
 public interface YoutubeService {
 

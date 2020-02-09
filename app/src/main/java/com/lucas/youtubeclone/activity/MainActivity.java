@@ -14,17 +14,20 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.lucas.youtubeclone.R;
 import com.lucas.youtubeclone.adapter.AdapterVideo;
 import com.lucas.youtubeclone.api.YoutubeService;
-import com.lucas.youtubeclone.helper.RetrifitConfig;
+import com.lucas.youtubeclone.helper.RetrofitConfig;
 import com.lucas.youtubeclone.helper.YoutubeConfig;
 import com.lucas.youtubeclone.model.Item;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
-import java.util.ArrayList;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
+import io.reactivex.Completable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Retrofit;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity
         implements MaterialSearchView.OnQueryTextListener,
@@ -32,12 +35,13 @@ public class MainActivity extends AppCompatActivity
 
     private RecyclerView recyclerVideos;
 
-    private List<Item> videos = new ArrayList<>();
-
     private MaterialSearchView searchView;
 
-    private Retrofit retrofit;
+    private Retrofit retrofit = RetrofitConfig.getRetrofit();
 
+    private AdapterVideo adapterVideo = new AdapterVideo(this::clickItemList);
+
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +58,6 @@ public class MainActivity extends AppCompatActivity
 
         configurarRecyclerView();
 
-        //Retrofit
-        retrofit = RetrifitConfig.getRetrofit();
-        //recupera os videos
-
         //Configurando metodos search view
         searchView.setOnQueryTextListener(this);
         searchView.setOnSearchViewListener(this);
@@ -71,14 +71,14 @@ public class MainActivity extends AppCompatActivity
         String query = pesquisa.replaceAll(" ", "+");
         YoutubeService youtubeService = retrofit.create(YoutubeService.class);
 
-        youtubeService.recuperarVideos("snippet", "date", "20",
-                YoutubeConfig.CHAVE_YOUTUBE_API, YoutubeConfig.CANAL_ID, query
-        ).subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(resultado -> {
-                    videos = resultado.items;
-                    configurarRecyclerView();
-                });
+        compositeDisposable.add(
+                Completable.complete()
+                        .observeOn(Schedulers.io())
+                        .subscribe(() ->
+                                compositeDisposable.add(youtubeService.recuperarVideos("snippet", "date", "20",
+                                        YoutubeConfig.CHAVE_YOUTUBE_API, YoutubeConfig.CANAL_ID, query)
+                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .subscribe(resultado -> updateVideos(resultado.items)))));
     }
 
     /**
@@ -86,8 +86,6 @@ public class MainActivity extends AppCompatActivity
      * da listView
      */
     public void configurarRecyclerView() {
-        AdapterVideo adapterVideo = new AdapterVideo(videos, this::clickItemList);
-
         recyclerVideos.setHasFixedSize(true);
         recyclerVideos.setLayoutManager(new LinearLayoutManager(this));
         recyclerVideos.setAdapter(adapterVideo);
@@ -116,6 +114,15 @@ public class MainActivity extends AppCompatActivity
         return super.onCreateOptionsMenu(menu);
     }
 
+    /**
+     * Atualiza a Lista de videos a partir do listener
+     * do serviceAPI
+     *
+     * @param videos
+     */
+    public void updateVideos(@NotNull List<Item> videos) {
+        adapterVideo.updateData(videos);
+    }
 
     /**
      * Função responsavel pela ação da barra de pesquisa
